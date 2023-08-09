@@ -1,0 +1,7 @@
+main.onefile-build/
+*.zip
+algorithm/
+game/
+parses/
+.idea/
+main.exe
