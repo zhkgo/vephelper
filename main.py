@@ -63,7 +63,10 @@ class SSVEPApp:
         self.fuchsia = (255, 0, 128)
         self.fps = 120
         self.btns = [SSVEPControl(self.screen, basepos=pos, freq=freq, fps=self.fps, size=4.5) for pos, freq in freqs]
-        self.transparency_button = pygame.Rect(10, 10, 100, 30)
+        self.transparency_button = pygame.Rect(10, 10, 30, 30)
+        self.button_image = pygame.image.load('images/trans.png')
+        self.button_image = pygame.transform.scale(self.button_image, (30, 30))
+
         self.start_drag = False
         self.start_pos = (0, 0)
         self.dragging_block = None
@@ -88,11 +91,7 @@ class SSVEPApp:
             self.screen.fill(background_color)  # 根据透明状态设置背景颜色
             for btn in self.btns:
                 btn.draw()
-            # 画一个白色的按钮，带有“C”标签
-            pygame.draw.rect(self.screen, (255, 255, 255), self.transparency_button)
-            font = pygame.font.SysFont(None, 24)
-            text_surface = font.render('C', True, (0, 0, 0))
-            self.screen.blit(text_surface, (self.transparency_button.x + 45, self.transparency_button.y + 5))
+            self.screen.blit(self.button_image, (10, 10))
             pygame.display.update()
             self.fclock.tick(self.fps)
     def handle_event(self, event):
