@@ -58,7 +58,7 @@ class SSVEPApp:
     def __init__(self, freqs):
         pygame.init()
         self.screen_size = (500, 300)
-        self.transparent = True
+        self.transparent = False
         self.screen = showWindow(self.transparent, self.screen_size)
         self.fuchsia = (255, 0, 128)
         self.fps = 120
@@ -66,31 +66,54 @@ class SSVEPApp:
         self.transparency_button = pygame.Rect(10, 10, 30, 30)
         self.button_image = pygame.image.load('images/trans.png')
         self.button_image = pygame.transform.scale(self.button_image, (30, 30))
-
+        self.add_button = pygame.Rect(120, 10, 100, 30)
+        self.remove_button = pygame.Rect(230, 10, 100, 30)
         self.start_drag = False
         self.start_pos = (0, 0)
         self.dragging_block = None
         self.fclock = pygame.time.Clock()
         self.hwnd = pygame.display.get_wm_info()["window"]
         self.toggle_transparency(self.transparent)
+        self.adding_frequency = False
+        self.removing_frequency = False
+        self.input_text = ""
+        self.font = pygame.freetype.SysFont(None, 24)
 
     def toggle_transparency(self, transparent):
+        # 获取当前窗口位置和大小
         x, y, width, height = win32gui.GetWindowRect(self.hwnd)
-        self.screen = showWindow(transparent, (width - x, height - y))  # 根据透明状态设置边框和大小手柄
-        # 恢复窗口位置和大小
-        win32gui.SetWindowPos(self.hwnd, 0, x, y, width - x, height - y, 0)
+        # 根据透明状态更新窗口
+        self.screen = showWindow(transparent, (width - x, height - y))
+        # 恢复窗口位置
+        win32gui.SetWindowPos(self.hwnd, 0, x, y, 0, 0, win32con.SWP_NOSIZE)
         if transparent:
             win32gui.SetLayeredWindowAttributes(self.hwnd, win32api.RGB(*self.fuchsia), 0, win32con.LWA_COLORKEY)
         else:
             win32gui.SetLayeredWindowAttributes(self.hwnd, 0, 255, win32con.LWA_ALPHA)
+
     def run(self):
         while True:
             for event in pygame.event.get():
                 self.handle_event(event)
             background_color = self.fuchsia if self.transparent else (0, 0, 0)
-            self.screen.fill(background_color)  # 根据透明状态设置背景颜色
+            self.screen.fill(background_color)
             for btn in self.btns:
                 btn.draw()
+            if not self.transparent:  # 在非透明时绘制闪烁块并显示频率
+                for btn in self.btns:
+                    font = pygame.font.SysFont(None, 24)
+                    text_surface = font.render(str(btn.freq) + ' Hz', True, (255, 255, 255))
+                    self.screen.blit(text_surface, (btn.basepos[0] + 5, btn.basepos[1] - 25))
+                # 在非透明时绘制增加和删除按钮
+                pygame.draw.rect(self.screen, (0, 255, 0), self.add_button)
+                pygame.draw.rect(self.screen, (255, 0, 0), self.remove_button)
+                font = pygame.font.SysFont(None, 24)
+                self.screen.blit(font.render('Add', True, (0, 0, 0)), (self.add_button.x + 35, self.add_button.y + 5))
+                self.screen.blit(font.render('Remove', True, (0, 0, 0)), (self.remove_button.x + 25, self.remove_button.y + 5))
+                if self.adding_frequency or self.removing_frequency:
+                    prompt = "Enter frequency to add: " if self.adding_frequency else "Enter frequency to remove: "
+                    text_surface, _ = self.font.render(prompt + self.input_text, (255, 255, 255))
+                    self.screen.blit(text_surface, (50, 250))
             self.screen.blit(self.button_image, (10, 10))
             pygame.display.update()
             self.fclock.tick(self.fps)
@@ -110,6 +133,13 @@ class SSVEPApp:
                     if btn.collidepoint(x, y):
                         self.dragging_block = btn
                         break
+                if self.add_button.collidepoint(x, y):
+                    self.adding_frequency = True
+                    self.input_text = ""
+                elif self.remove_button.collidepoint(x, y) and self.btns:
+                    self.removing_frequency = True
+                    self.input_text = ""
+
         elif event.type == pygame.MOUSEBUTTONUP:
             self.start_drag = False
             self.dragging_block = None
@@ -119,6 +149,19 @@ class SSVEPApp:
             if self.dragging_block:
                 self.dragging_block.move(dx, dy)
             self.start_pos = x, y
+        elif event.type == pygame.KEYDOWN and (self.adding_frequency or self.removing_frequency):
+            if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                freq = float(self.input_text)
+                if self.adding_frequency:
+                    self.btns.append(SSVEPControl(self.screen, basepos=(200, 200), freq=freq, fps=self.fps, size=4.5))
+                elif self.removing_frequency:
+                    self.btns = [btn for btn in self.btns if btn.freq != freq]
+                self.adding_frequency = self.removing_frequency = False
+            elif event.key == pygame.K_BACKSPACE:
+                self.input_text = self.input_text[:-1]
+            else:
+                self.input_text += event.unicode
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SSVEP Control")
