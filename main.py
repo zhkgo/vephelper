@@ -1,3 +1,5 @@
+import json
+
 import pygame, sys
 import win32api
 import win32con
@@ -5,6 +7,8 @@ import win32gui
 import math
 import argparse
 suf = None
+import pygame.freetype
+
 class SSVEPControl:
     def __init__(self, screen,  basepos = (100,100), size = 4, num=(9,9), freq = 10 , fps=200):
         self.screen = screen
@@ -78,6 +82,11 @@ class SSVEPApp:
         self.removing_frequency = False
         self.input_text = ""
         self.font = pygame.freetype.SysFont(None, 24)
+        self.save_button = pygame.Rect(340, 10, 100, 30)
+        self.load_button = pygame.Rect(450, 10, 100, 30)
+        self.show_save_success = False
+        # 尝试自动加载配置
+        self.load_configuration()
 
     def toggle_transparency(self, transparent):
         # 获取当前窗口位置和大小
@@ -114,6 +123,21 @@ class SSVEPApp:
                     prompt = "Enter frequency to add: " if self.adding_frequency else "Enter frequency to remove: "
                     text_surface, _ = self.font.render(prompt + self.input_text, (255, 255, 255))
                     self.screen.blit(text_surface, (50, 250))
+                # 绘制保存和加载按钮
+                pygame.draw.rect(self.screen, (0, 0, 255), self.save_button)
+                pygame.draw.rect(self.screen, (255, 165, 0), self.load_button)
+                self.screen.blit(font.render('Save', True, (0, 0, 0)),
+                                 (self.save_button.x + 30, self.save_button.y + 5))
+                self.screen.blit(font.render('Load', True, (0, 0, 0)),
+                                 (self.load_button.x + 30, self.load_button.y + 5))
+                if self.show_save_success:
+                    pygame.draw.rect(self.screen, (0, 255, 0), (200, 130, 100, 40))
+                    text_surface, _ = self.font.render('Saved!', (0, 0, 0))
+                    self.screen.blit(text_surface, (215, 145))
+                    pygame.display.update()
+                    pygame.time.delay(1000)
+                    self.show_save_success = False
+
             self.screen.blit(self.button_image, (10, 10))
             pygame.display.update()
             self.fclock.tick(self.fps)
@@ -140,6 +164,11 @@ class SSVEPApp:
                     self.removing_frequency = True
                     self.input_text = ""
 
+                if self.save_button.collidepoint(x, y):
+                    self.save_configuration()
+                elif self.load_button.collidepoint(x, y):
+                    self.load_configuration()
+
         elif event.type == pygame.MOUSEBUTTONUP:
             self.start_drag = False
             self.dragging_block = None
@@ -161,7 +190,28 @@ class SSVEPApp:
                 self.input_text = self.input_text[:-1]
             else:
                 self.input_text += event.unicode
+    def save_configuration(self):
+        x, y, width, height = win32gui.GetWindowRect(self.hwnd)
+        config = {
+            'window_position': (x, y),
+            'window_size': (width - x, height - y),
+            'blocks': [{'basepos': btn.basepos, 'freq': btn.freq} for btn in self.btns]
+        }
+        with open('config.json', 'w') as file:
+            json.dump(config, file)
+        self.show_save_success = True
 
+    def load_configuration(self):
+        try:
+            with open('config.json', 'r') as file:
+                config = json.load(file)
+            x, y = config['window_position']
+            self.screen_size = config['window_size']
+            self.screen = showWindow(self.transparent, self.screen_size)
+            win32gui.SetWindowPos(self.hwnd, 0, x, y, *self.screen_size, 0)
+            self.btns = [SSVEPControl(self.screen, **block) for block in config['blocks']]
+        except FileNotFoundError:
+            pass
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SSVEP Control")
