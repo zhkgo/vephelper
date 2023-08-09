@@ -48,7 +48,7 @@ def showWindow(transparent=False,size=(900,900)):
         screen = pygame.display.set_mode(size, flags= pygame.RESIZABLE)
     else:
         screen = pygame.display.set_mode(size, flags=pygame.NOFRAME)
-    pygame.display.set_caption("SSVEP")
+    pygame.display.set_caption("SSVEP(made by zhkgo)")
     # Set window transparency color
     hwnd = pygame.display.get_wm_info()["window"]
     win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
@@ -68,7 +68,7 @@ class SSVEPApp:
         self.fps = 120
         self.btns = [SSVEPControl(self.screen, basepos=pos, freq=freq, fps=self.fps, size=4.5) for pos, freq in freqs]
         self.transparency_button = pygame.Rect(10, 10, 30, 30)
-        self.button_image = pygame.image.load('images/trans.png')
+        self.button_image = pygame.image.load('resources/trans.png')
         self.button_image = pygame.transform.scale(self.button_image, (30, 30))
         self.add_button = pygame.Rect(120, 10, 100, 30)
         self.remove_button = pygame.Rect(230, 10, 100, 30)
@@ -81,7 +81,8 @@ class SSVEPApp:
         self.adding_frequency = False
         self.removing_frequency = False
         self.input_text = ""
-        self.font = pygame.freetype.SysFont(None, 24)
+        font_path = "resources/SourceHanSerifCN-SemiBold-7.otf"
+        self.font = pygame.freetype.Font(font_path, 18)
         self.save_button = pygame.Rect(340, 10, 100, 30)
         self.load_button = pygame.Rect(450, 10, 100, 30)
         self.show_save_success = False
@@ -110,15 +111,13 @@ class SSVEPApp:
                 btn.draw()
             if not self.transparent:  # 在非透明时绘制闪烁块并显示频率
                 for btn in self.btns:
-                    font = pygame.font.SysFont(None, 24)
-                    text_surface = font.render(str(btn.freq) + ' Hz', True, (255, 255, 255))
+                    text_surface, _ = self.font.render(str(btn.freq) + ' Hz', (255, 255, 255))
                     self.screen.blit(text_surface, (btn.basepos[0] + 5, btn.basepos[1] - 25))
                 # 在非透明时绘制增加和删除按钮
                 pygame.draw.rect(self.screen, (0, 255, 0), self.add_button)
                 pygame.draw.rect(self.screen, (255, 0, 0), self.remove_button)
-                font = pygame.font.SysFont(None, 24)
-                self.screen.blit(font.render('Add', True, (0, 0, 0)), (self.add_button.x + 35, self.add_button.y + 5))
-                self.screen.blit(font.render('Remove', True, (0, 0, 0)), (self.remove_button.x + 25, self.remove_button.y + 5))
+                self.screen.blit(self.font.render('Add', (0, 0, 0))[0], (self.add_button.x + 35, self.add_button.y + 5))
+                self.screen.blit(self.font.render('Remove', (0, 0, 0))[0], (self.remove_button.x + 25, self.remove_button.y + 5))
                 if self.adding_frequency or self.removing_frequency:
                     prompt = "Enter frequency to add: " if self.adding_frequency else "Enter frequency to remove: "
                     text_surface, _ = self.font.render(prompt + self.input_text, (255, 255, 255))
@@ -126,9 +125,9 @@ class SSVEPApp:
                 # 绘制保存和加载按钮
                 pygame.draw.rect(self.screen, (0, 0, 255), self.save_button)
                 pygame.draw.rect(self.screen, (255, 165, 0), self.load_button)
-                self.screen.blit(font.render('Save', True, (0, 0, 0)),
+                self.screen.blit(self.font.render('Save', (0, 0, 0))[0],
                                  (self.save_button.x + 30, self.save_button.y + 5))
-                self.screen.blit(font.render('Load', True, (0, 0, 0)),
+                self.screen.blit(self.font.render('Load', (0, 0, 0))[0],
                                  (self.load_button.x + 30, self.load_button.y + 5))
                 if self.show_save_success:
                     pygame.draw.rect(self.screen, (0, 255, 0), (200, 130, 100, 40))
