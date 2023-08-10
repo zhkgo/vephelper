@@ -10,7 +10,7 @@ suf = None
 import pygame.freetype
 
 class SSVEPControl:
-    def __init__(self, screen,  basepos = (100,100), size = 4, num=(9,9), freq = 10 , fps=200):
+    def __init__(self, screen,  basepos = (100,100), size = 4, num=(9,9), freq = 10 , fps=60):
         self.screen = screen
         self.sufs = []
         self.size = size
@@ -29,7 +29,7 @@ class SSVEPControl:
         self.rect = pygame.Rect(basepos[0], basepos[1], size * num[0] * 2, size * num[1] * 2) # 指定块的边界矩形
 
     def draw(self,):
-        alpha = max(math.sin(self.freq/self.fps*self .cnt*2*math.pi), 0)
+        alpha = max(math.sin(self.freq/self.fps*self.cnt*2*math.pi), 0)
         self.cnt += 1
         alpha = int(alpha*255)
         for i,line in enumerate(self.sufs):
@@ -39,6 +39,8 @@ class SSVEPControl:
     def move(self, dx, dy):
         self.basepos = (self.basepos[0] + dx, self.basepos[1] + dy)
         self.rect.move_ip(dx, dy)
+    def reset_cnt(self):
+        self.cnt = 0
 
     def collidepoint(self, x, y):
         return self.rect.collidepoint(x, y)
@@ -65,7 +67,7 @@ class SSVEPApp:
         self.transparent = False
         self.screen = showWindow(self.transparent, self.screen_size)
         self.fuchsia = (255, 0, 128)
-        self.fps = 120
+        self.fps = 60
         self.btns = [SSVEPControl(self.screen, basepos=pos, freq=freq, fps=self.fps, size=4.5) for pos, freq in freqs]
         self.transparency_button = pygame.Rect(10, 10, 30, 30)
         self.button_image = pygame.image.load('resources/trans.png')
@@ -88,7 +90,9 @@ class SSVEPApp:
         self.show_save_success = False
         # 尝试自动加载配置
         self.load_configuration()
-
+    def reset_all_cnt(self):
+        for btn in self.btns:
+            btn.reset_cnt()
     def toggle_transparency(self, transparent):
         # 获取当前窗口位置和大小
         x, y, width, height = win32gui.GetWindowRect(self.hwnd)
@@ -137,9 +141,14 @@ class SSVEPApp:
                     pygame.time.delay(1000)
                     self.show_save_success = False
 
+            fps = self.fclock.get_fps()
+
+            # Update the window title with the current frame rate
+            pygame.display.set_caption(f"Frame Rate: {fps:.2f} FPS")
             self.screen.blit(self.button_image, (10, 10))
             pygame.display.update()
             self.fclock.tick(self.fps)
+            
     def handle_event(self, event):
         if event.type == pygame.QUIT:
             sys.exit()
@@ -184,11 +193,13 @@ class SSVEPApp:
                     self.btns.append(SSVEPControl(self.screen, basepos=(200, 200), freq=freq, fps=self.fps, size=4.5))
                 elif self.removing_frequency:
                     self.btns = [btn for btn in self.btns if btn.freq != freq]
+                self.reset_all_cnt()  # 重置所有刺激块的cnt
                 self.adding_frequency = self.removing_frequency = False
             elif event.key == pygame.K_BACKSPACE:
                 self.input_text = self.input_text[:-1]
             else:
                 self.input_text += event.unicode
+
     def save_configuration(self):
         x, y, width, height = win32gui.GetWindowRect(self.hwnd)
         config = {
