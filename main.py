@@ -144,7 +144,7 @@ class SSVEPApp:
             fps = self.fclock.get_fps()
 
             # Update the window title with the current frame rate
-            pygame.display.set_caption(f"Frame Rate: {fps:.2f} FPS")
+            # pygame.display.set_caption(f"Frame Rate: {fps:.2f} FPS")
             self.screen.blit(self.button_image, (10, 10))
             pygame.display.update()
             self.fclock.tick(self.fps)
